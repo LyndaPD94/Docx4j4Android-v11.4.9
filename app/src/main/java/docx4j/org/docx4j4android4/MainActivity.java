@@ -9,6 +9,18 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import com.sun.xml.bind.v2.runtime.JAXBContextImpl;
 
 import org.docx4j.XmlUtils;
@@ -19,6 +31,8 @@ import org.docx4j.model.images.ConversionImageHandler;
 import org.docx4j.openpackaging.exceptions.InvalidFormatException;
 import org.docx4j.openpackaging.io.LoadFromZipNG;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
+import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.wml.Document;
 
 import javax.xml.bind.JAXBException;
@@ -45,28 +59,32 @@ public class MainActivity extends AppCompatActivity {
         try {
             System.out.println("about to create package");
 
-            // org.apache.harmony.xml.parsers.SAXParserFactoryImpl throws SAXNotRecognizedException
-            // for feature http://javax.xml.XMLConstants/feature/secure-processing
-            // so either disable XML security, or use a different parser.  Here we disable it.
-            org.docx4j.jaxb.ProviderProperties.getProviderProperties().put(JAXBContextImpl.DISABLE_XML_SECURITY, Boolean.TRUE);
+        try {
 
-            // Can we init the Context?
-            // You can delete this if you want...
-            System.out.println(Context.getJaxbImplementation());
-            System.out.println(Context.jc.getClass().getName());
-
-            // Create WordprocessingMLPackage
-            WordprocessingMLPackage w = WordprocessingMLPackage.createPackage();
-            w.getMainDocumentPart().setJaxbElement(new Document() );
-            w.getMainDocumentPart().addParagraphOfText("hello from android");
-
-            // Test marshalling works
-            String XML = XmlUtils.marshaltoString(w.getMainDocumentPart().getJaxbElement());
-            // or simply w.getMainDocumentPart().getXML();
-
-            System.out.println(XML);
-
-            // Test unmarshalling works
+            File dbFile = getDatabasePath(DATABASE_NAME);
+            File source = new File(Environment.getExternalStorageDirectory() + "/Documents");
+                source.mkdirs();
+                File file = new File(source, "doc4jtest.docx");
+                if (!file.exists()) {
+                    System.out.println(source);
+                    file.createNewFile();
+                    Toast.makeText(getApplicationContext(), "creating document", Toast.LENGTH_SHORT).show();
+                }try{
+                WordprocessingMLPackage wordPackage = WordprocessingMLPackage.createPackage();
+                MainDocumentPart mainDocumentPart = wordPackage.getMainDocumentPart();
+                mainDocumentPart.addStyledParagraphOfText("Title", "Hello World!");
+                mainDocumentPart.addParagraphOfText("Welcome To Baeldung");
+                wordPackage.save(file);
+            }catch (Exception e){
+                    e.printStackTrace();
+            }
+            System.out.println("document created successfully!");
+            Toast.makeText(this,"Document filled successfully", Toast.LENGTH_SHORT).show();
+        } catch (Exception e){
+            Toast.makeText(this, "Error: Unable to create document", Toast.LENGTH_SHORT).show();
+        }
+    }
+        
             try {
                 Object o = XmlUtils.unmarshalString(XML, Context.jc);
                 System.out.println(o.getClass().getName());
